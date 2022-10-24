@@ -14,16 +14,35 @@ from define import *
 
 
 def extract_feature(data):
-    mean_ft = np.array(data.mean())
-    std_ft = np.array(data.std())
-    max_ft = np.array(data.max())
-    min_ft = np.array(data.min())
-    var_ft = np.array(data.var())
-    med_ft = np.array(data.median())
-    sum_ft = np.array(data.sum())
-    features = np.array([mean_ft, std_ft, max_ft, min_ft, var_ft, med_ft, sum_ft]).T.flatten()
+    mean_ft = np.mean(data, axis=1)
+    std_ft = np.std(data, axis=1)
+    max_ft = np.max(data, axis=1)
+    min_ft = np.min(data, axis=1)
+    var_ft = np.var(data, axis=1)
+    med_ft = np.median(data, axis=1)
+    sum_ft = np.sum(data, axis=1)
+    features = np.array([mean_ft, std_ft, max_ft, min_ft, var_ft, med_ft, sum_ft]).T
     return features
 
+
+def segment(data, data_index):
+    row, col = np.where(data_index >= len(data))
+    uniq_row = len(np.unique(row))
+    if uniq_row > 0 and row[0] > 0:
+        data_seg_ = data[data_index[:-uniq_row, :]]
+        data_seg_end = data[data_index[-uniq_row, 0]:]
+        data_seg_feat = extract_feature(data_seg_)
+        data_seg_end_feat = extract_feature(np.expand_dims(data_seg_end, axis=0))
+        data_seg_feat = np.concatenate([data_seg_feat, data_seg_end_feat], axis=0)
+    elif uniq_row > 0 and row[0] == 0:
+        # data_seg_ = data[data_index[:-uniq_row, :]]
+        data_seg_feat = extract_feature(np.expand_dims(data, axis=0))
+    else:
+        data_seg_ = data[data_index]
+        data_seg_feat = extract_feature(data_seg_)
+
+    a=0
+    return data_seg_feat
 
 def main():
     # Load data
@@ -62,14 +81,21 @@ def main():
     for i in range(len(df_label)):
         seg = df[(df["timestamp"] >= df_label['started_at'][i]) & (df["timestamp"] <= df_label['finished_at'][i])]
         seg_label = df_label["activity"][i]
-        data_len = len(seg)
-        data_index = np.arange(beat_feature_len)[None, :] + \
-                     np.arange(0, data_len, beat_feature_len)[:, None]
         if len(seg) > 0:
-            seg = seg.iloc[:, 1:]
-            seg_list.append(seg)
-            seg_label_list.append(seg_label)
-            seg_features_list.append(extract_feature(seg))
+            data_len = len(seg)
+            acc_x = np.array(seg['x'])
+            acc_y = np.array(seg['y'])
+            acc_z = np.array(seg['z'])
+            data_index = np.arange(FEATURE_LEN)[None, :] + \
+                         np.arange(0, data_len, int(OVERLAP_RATE*FEATURE_LEN))[:, None]
+            feat_x = segment(acc_x, data_index)
+            feat_y = segment(acc_y, data_index)
+            feat_z = segment(acc_z, data_index)
+            feat_seg = np.concatenate([feat_x, feat_y, feat_z], axis=1)
+
+            seg_features_list.extend(feat_seg)
+            seg_label_list.extend([seg_label]*len(feat_seg))
+            a=0
 
     # Training
     model_ml = RandomForestClassifier(n_estimators=500, n_jobs=-1)

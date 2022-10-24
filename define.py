@@ -6,5 +6,5 @@ USER_ID = 16
 SCALE_FACTOR = 1.5
 SEGMENT_LENGTH = 1  # minute
 
-DATA_LEN = 350  # samples
+FEATURE_LEN = 350  # samples
 OVERLAP_RATE = 0.5
