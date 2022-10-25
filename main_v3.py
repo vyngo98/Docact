@@ -71,10 +71,6 @@ def main():
     df_label = df_label.reset_index(drop=True)
 
     # Extract features
-    seg_list = []
-    seg_min = []
-    seg_min_label = []
-    seg_min_feature = []
     seg_label_list = []
     seg_features_list = []
 
