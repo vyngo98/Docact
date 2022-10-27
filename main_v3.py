@@ -64,8 +64,13 @@ def main():
     for name in activity_name:
         each_activity_df = df_label[df_label['activity'] == name]
         duration = pd.to_datetime(each_activity_df['finished_at']) - pd.to_datetime(each_activity_df['started_at'])
-        mean_duration = duration.mean()
-        delete_ind.extend(list(duration[duration > mean_duration * SCALE_FACTOR].index))
+        # mean_duration = duration.mean()
+        below_thres = duration.quantile(0.1)
+        upper_thres = duration.quantile(0.9)
+        if (len(each_activity_df) - len(list(duration[(duration > below_thres) & (duration < upper_thres)].index))) == 0:
+            continue
+        delete_ind.extend(list(duration[(duration > below_thres) & (duration < upper_thres)].index))
+        # delete_ind.extend(list(duration[duration > mean_duration * SCALE_FACTOR].index))
 
     df_label.drop(delete_ind, axis=0, inplace=True)
     df_label = df_label.reset_index(drop=True)
